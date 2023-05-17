@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员-更新图书</title>
+
+</head>
+<body>
+<link rel="stylesheet" href="../css/mainPage.css">
+<div id="app">
+    <el-main>
+        <el-form :inline="true" :model="formInLine" class="demo-form-inline">
+            <el-form-item label="搜索类型">
+                <el-select placeholder="搜索类型" v-model="formInLine.type">
+                    <el-option label="书名" value="bookName"></el-option>
+                    <el-option label="作者" value="author"></el-option>
+                    <el-option label="出版社" value="publisher"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-input placeholder="请输入内容" v-model="formInLine.content"></el-input>
+            </el-form-item>
+
+            <el-form-item>
+                <el-button type="primary" v-on:click="pagination.currentPage = 1;queryBooksConditionally()">查询</el-button>
+            </el-form-item>
+        </el-form>
+
+        <!--批量删除,新增按钮--> <!--OK-->
+        <el-row>
+            <el-button type="danger" plain @click="multiDeleteBook">批量删除</el-button>
+            <el-button type="primary" plain @click="openAddBookDialog">新增</el-button>
+        </el-row>
+
+        <!--新增按钮对应的对话框--> <!--OK-->
+
+        <el-dialog
+                title="新图书信息"
+                :visible.sync="dialogVisible4Add"
+                width="30%">
+
+            <!--对话框中的表单(新增图书)-->
+            <el-form ref="formAddBook"
+                     :model="bookFormData"
+                     label-width="150px">
+                <el-form-item label="新增书名:">
+                    <el-input v-model="bookFormData.bookName"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书ISBN:">
+                    <el-input v-model="bookFormData.isbn"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书作者:">
+                    <el-input v-model="bookFormData.author"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书出版社:">
+                    <el-input v-model="bookFormData.publisher"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书版次:">
+                    <el-input v-model="bookFormData.edition"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书价格:">
+                    <el-input v-model="bookFormData.price"></el-input>
+                </el-form-item>
+                <el-form-item label="新增图书位置:">
+                    <el-input v-model="bookFormData.place"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="addBook">确认</el-button>
+                    <el-button @click="dialogVisible4Add = false">取消</el-button>
+                </el-form-item>
+            </el-form>
+
+        </el-dialog>
+
+
+        <!--表格--> <!--OK-->
+        </el-table>
+        </template>
+
+        <el-table :data="books"
+                  style="width: 100%"
+                  @selection-change="handleSelectionChange">
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column prop="bookName" label="书名" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="isbn" label="ISBN" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="author" label="作者" align="center">
+            </el-table-column>
+            <el-table-column prop="publisher" label="出版社" align="center">
+            </el-table-column>
+            <el-table-column prop="edition" label="版次" align="center" width="120">
+            </el-table-column>
+            <el-table-column prop="price" label="价格" align="center" width="120">
+            </el-table-column>
+            <el-table-column prop="remain" label="剩余量" align="center" width="160">
+            </el-table-column>
+            <el-table-column prop="place" label="位置" align="center">
+            </el-table-column>
+            <el-table-column label="操作" align="center" width="180">
+                <template slot-scope="scope">
+                    <el-button type="primary" size="mini" @click="openUpdateDialog(scope.row)">编辑</el-button>
+                    <el-button type="danger" size="mini" @click="deleteBook(scope.row)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+
+        <!--修改按钮对应的对话框--> <!--OK-->
+        <el-dialog
+                title="提示"
+                :visible.sync="dialogVisible4Edit"
+                width="30%">
+            <!--对话框中的表单(修改图书)-->
+            <el-form ref="formEditBook" :model="bookFormData" label-width="150px">
+                <el-form-item label="修改后的书名:">
+                    <el-input v-model="bookFormData.bookName"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书ISBN:">
+                    <el-input v-model="bookFormData.isbn"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书作者:">
+                    <el-input v-model="bookFormData.author"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书出版社:">
+                    <el-input v-model="bookFormData.publisher"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书版次:">
+                    <el-input v-model="bookFormData.edition"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书价格:">
+                    <el-input v-model="bookFormData.price"></el-input>
+                </el-form-item>
+                <el-form-item label="修改后图书位置:">
+                    <el-input v-model="bookFormData.place"></el-input>
+                </el-form-item>
+
+                <el-form-item>
+                    <el-button type="primary" @click="editBook">确认</el-button>
+                    <el-button @click="dialogVisible4Edit = false">取消</el-button>
+                </el-form-item>
+            </el-form>
+
+        </el-dialog>
+
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="pagination.currentPage"
+                :page-sizes="[5, 10, 15]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="pagination.total">
+        </el-pagination>
+
+    </el-main>
+</div>
+
+<script src="../js/vue.js"></script>
+<script src="../js/index.js"></script>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<link rel="stylesheet" href="../plugins/elementui/index.css">
+
+
+<script>
+    var vue = new Vue({
+        el: "#app",
+        data: {
+            //要展示的所有图书数据
+            books: [],
+            //返回的表单数据(添加窗口和编辑窗口共用的表单数据)
+            bookFormData: {},
+
+            //管理员信息表单
+            UserInfoData: [],
+            //新增按钮对应的对话框是否展开的标记
+            dialogVisible4Add: false,
+            //修改按钮对应的对话框是否展开的标记
+            dialogVisible4Edit: false,
+            //multipleSelection数组,存放复选框勾中的数据
+            multipleSelection: [],
+
+            //查询表单数据
+            formInLine: {
+                type: '', //搜索类型
+                content: '' //搜索内容
+            },
+
+            // 当前页码
+            pagination: {
+                currentPage: 1,
+                pageSize: 5,
+                total: 0
+            }
+
+
+        },
+
+        //钩子函数，VUE对象初始化完成后自动执行 /*OK*/
+        created() {
+            //调用查询全部
+            this.getAllBook();
+            this.InitUserInfo();//自动获取管理员的个人信息
+        },
+
+        methods: {
+            //重置表单 /*OK*/
+            resetForm() {
+                this.bookFormData = {};
+            },
+
+            //管理员信息初始化 /*OK*/
+            InitUserInfo() {
+                axios.get("/infos/getMyInfo").then((res) => {
+                    this.UserInfoData = res.data;
+                });
+            },
+            //表单查询按钮 /*OK*/
+            queryBooksConditionally() {
+                //调用条件查询
+                var type = this.formInLine.type;
+                var content = this.formInLine.content;
+
+                if (type !== '' && content !== '') {
+                    axios.get("/books4admin/ByCondition4Book/" + this.pagination.currentPage + "/" +
+                        this.pagination.pageSize + "/" + type + "/" + content).then((res) => {
+                        this.pagination.currentPage = res.data.current;
+                        this.pagination.pageSize = res.data.size;
+                        this.pagination.total = res.data.total;
+                        this.books = res.data.records;
+                    });
+                } else {
+                    //两个框的内容,只要有一个没填,就默认为查询全部
+                    this.getAllBook();
+                }
+            },
+
+            //查询所有图书数据
+            getAllBook() {
+                axios.get("/books4admin/renewsByPage/" + this.pagination.currentPage + "/" +
+                    this.pagination.pageSize).then((res) => {
+                    this.pagination.currentPage = res.data.current;
+                    this.pagination.pageSize = res.data.size;
+                    this.pagination.total = res.data.total;
+                    this.books = res.data.records;
+
+                });
+            },
+
+            <!--分页-->
+            handleSizeChange(val) { //切换当前页显示条数
+                this.pagination.pageSize = val;
+                this.getAllBook();
+            },
+            handleCurrentChange(val) { //切换页码值
+                this.pagination.currentPage = val;
+                this.getAllBook();
+            },
+
+
+            //处理新增 /*OK*/
+            openAddBookDialog() {
+                this.resetForm();
+                this.dialogVisible4Add = true;
+            },
+
+            //添加新增按钮对应的对话框中表单的内容 /*OK*/
+            addBook() {
+                //ajax异步调用
+                axios.post("/books4admin", this.bookFormData).then((res) => {
+
+                }).finally(() => {
+                    this.getAllBook();//刷新数据
+                });
+
+                this.dialogVisible4Add = false;//关闭添加数目表单弹层
+            },
+
+            //处理更新 /*OK*/
+            openUpdateDialog(row) {
+                this.resetForm();//重置表单
+                //先查询(这里查询是为了进行数据回显)
+                axios.get("/books4admin/" + row.isbn).then((res) => {
+
+                    this.bookFormData = res.data; //数据回显操作
+                    this.dialogVisible4Edit = true; //弹出编辑窗口
+
+                }).finally(() => {
+                    this.getAllBook();//刷新数据
+                });
+            },
+            //添加修改按钮对应的对话框中表单的内容 /*OK*/
+            editBook() {
+                //让管理员确认是否要进行修改
+                this.$confirm('确认修改此数据?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => { //点击确定
+                    //发送ajax请求
+                    axios.put("/books4admin", this.bookFormData).then((res) => {
+                        this.dialogVisible4Edit = false;//关闭编辑图书弹层
+
+                    }).finally(() => {
+                        this.$message.success("修改成功~");
+                        this.getAllBook();//刷新数据
+                    });
+
+                }).catch(() => { //点击取消
+                    this.$message.info("已取消修改");
+                    this.dialogVisible4Edit = false;//关闭弹层
+                })
+            },
+
+            //处理删除 /*OK*/
+            deleteBook(row) {
+                console.log(row.isbn);
+
+                //弹出警告框,让管理员进行二次确认
+                this.$confirm('确认删除此数据?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    //发送ajax请求
+                    axios.delete("/books4admin/" + row.isbn).then((res) => {
+                        console.log(res.data);//测试
+                        this.$message.success("删除成功");
+                    }).finally(() => {
+                        this.getAllBook();//刷新数据
+                    });
+                }).catch(() => {
+                    this.$message.info("已取消删除");
+                })
+            },
+
+            //处理批量删除 /*OK*/
+            multiDeleteBook() {
+                var ISBNs = '';
+                for (var i = 0; i < this.multipleSelection.length; ++i) {
+                    ISBNs += this.multipleSelection[i].isbn + ' ';
+                }
+
+                //弹出警告框,让管理员进行二次确认
+                this.$confirm('确认删除此数据?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+
+                    //ajax发送批量删除请求
+                    axios({
+                        method: "delete",
+                        url: "/books4admin/ds/" + ISBNs
+                    }).then((res) => {
+                        //console.log(res.data);
+                    }).finally(() => {
+                        this.getAllBook();
+                    });
+
+                }).catch(() => {
+                    this.$message.info("已取消删除");
+                })
+            },
+
+            //复选框选中后执行的方法 /*OK*/
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            }
+        }
+    })
+
+</script>
+</body>
+</html>

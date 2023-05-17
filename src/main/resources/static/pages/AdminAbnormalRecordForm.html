@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员-异常记录</title>
+</head>
+<body>
+<link rel="stylesheet" href="../css/mainPage.css">
+<div id="app">
+    <el-main>
+        <!--搜索表单--> <!--OK-->
+        <el-form :inline="true" :model="formInLine" class="demo-form-inline">
+            <el-form-item label="搜索类型">
+                <el-select placeholder="搜索类型" v-model="formInLine.type">
+                    <el-option label="书名" value="bookName"></el-option>
+                    <el-option label="作者" value="author"></el-option>
+                    <el-option label="出版社" value="publisher"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-input placeholder="请输入内容" v-model="formInLine.content"></el-input>
+            </el-form-item>
+
+            <el-form-item>
+                <el-button type="primary" v-on:click="pagination.currentPage = 1;getAbnormalRecordConditionally()">查询</el-button>
+            </el-form-item>
+        </el-form>
+
+        <!--表格--> <!--OK-->
+        </el-table>
+        </template>
+
+        <el-table :data="books" style="width: 100%">
+            <el-table-column prop="bookName" label="书名" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="isbn" label="ISBN" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="username" label="用户名" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="account" label="用户账号" align="center">
+            </el-table-column>
+            <el-table-column prop="telephone" label="用户电话" align="center">
+            </el-table-column>
+            <el-table-column prop="email" label="用户邮箱" align="center">
+            </el-table-column>
+            <el-table-column prop="state" label="借阅状态" align="center" width="160">
+            </el-table-column>
+        </el-table>
+
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="pagination.currentPage"
+                :page-size="pagination.pageSize"
+                :page-sizes="[5, 10, 15]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="pagination.total">
+        </el-pagination>
+    </el-main>
+</div>
+
+
+<script src="../js/vue.js"></script>
+<script src="../js/index.js"></script>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<link rel="stylesheet" href="../plugins/elementui/index.css">
+
+<script>
+    var vue = new Vue({
+        el: "#app",
+        data: {
+            books: [],
+            //管理员信息表单
+            UserInfoData: [],
+            //multipleSelection数组,存放复选框勾中的数据
+            multipleSelection: [],
+
+            //表单数据
+            formInLine: {
+                type: '',
+                content: ''
+            },
+
+            // 当前页码
+            pagination: {
+                currentPage: 1,
+                pageSize: 5,
+                total: 0
+            }
+        },
+
+        //钩子函数，VUE对象初始化完成后自动执行 /*OK*/
+        created() {
+            //调用查询全部
+            this.getAllAbnormalRecord();
+            this.InitUserInfo();//自动获取管理员的个人信息
+        },
+
+        methods: {
+            <!--条件查询异常借阅记录--> /*OK*/
+            getAbnormalRecordConditionally() {
+                //调用条件查询
+                var type = this.formInLine.type;
+                var content = this.formInLine.content;
+
+                if (type !== '' && content !== '') {
+                    axios.get("/books4admin/getAbnormalRecordConditionally/" + this.pagination.currentPage + "/" +
+                        this.pagination.pageSize + "/" + type + "/" + content).then((res) => {
+                        this.pagination.currentPage = res.data.current;
+                        this.pagination.pageSize = res.data.size;
+                        this.pagination.total = res.data.total;
+                        this.books = res.data.records;
+                    });
+                } else {
+                    //两个框的内容,只要有一个没填,就默认为查询全部
+                    this.getAllAbnormalRecord();
+                }
+            },
+
+            //获取所有数据 /*OK*/
+            getAllAbnormalRecord() {
+                axios.get("/books4admin/getAllAbnormalRecord/" + this.pagination.currentPage + "/" +
+                    this.pagination.pageSize).then((res) => {
+                    this.pagination.currentPage = res.data.current;
+                    this.pagination.pageSize = res.data.size;
+                    this.pagination.total = res.data.total;
+                    this.books = res.data.records;
+                });
+            },
+
+            <!--分页-->
+            handleSizeChange(val) { //切换当前页显示条数
+                this.pagination.pageSize = val;
+                this.getAllAbnormalRecord();
+            },
+            handleCurrentChange(val) { //切换页码值
+                this.pagination.currentPage = val;
+                this.getAllAbnormalRecord();
+            },
+
+            //信息初始化 /*OK*/
+            InitUserInfo() {
+                axios.get("/infos/getMyInfo").then((res) => {
+                    this.UserInfoData = res.data;
+                });
+            },
+        }
+    })
+
+</script>
+</body>
+</html>

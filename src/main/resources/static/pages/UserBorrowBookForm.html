@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户-借阅书目</title>
+
+</head>
+<body>
+<link rel="stylesheet" href="../css/mainPage.css">
+<div id="app">
+    <el-main>
+        <!--搜索表单--> <!--OK-->
+        <el-form :inline="true" :model="formInLine" class="demo-form-inline">
+            <el-form-item label="搜索类型">
+                <el-select placeholder="搜索类型" v-model="formInLine.type">
+                    <el-option label="书名" value="bookName"></el-option>
+                    <el-option label="作者" value="author"></el-option>
+                    <el-option label="出版社" value="publisher"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-input placeholder="请输入内容" v-model="formInLine.content"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" v-on:click="pagination.currentPage = 1;queryBooksConditionally()" >查询</el-button>
+            </el-form-item>
+
+            <!--是否过滤库存-->
+            <template>
+                <el-checkbox id="checkbox" v-model="checked">过滤暂无库存</el-checkbox>
+            </template>
+        </el-form>
+
+        <!--表格--> <!--OK-->
+        </el-table>
+        </template>
+
+        <el-table :data="books" style="width: 100%">
+            <el-table-column prop="bookName" label="书名" align="center" width="240">
+            </el-table-column>
+            <el-table-column prop="isbn" label="ISBN" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="author" label="作者" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="publisher" label="出版社" align="center">
+            </el-table-column>
+            <el-table-column prop="edition" label="版次" align="center">
+            </el-table-column>
+            <el-table-column prop="price" label="单价" align="center" width="120">
+            </el-table-column>
+            <el-table-column prop="total" label="藏书总数" align="center" width="100">
+            </el-table-column>
+            <el-table-column prop="remain" label="馆内剩余" align="center" width="100">
+            </el-table-column>
+            <el-table-column prop="place" label="存放位置" align="center" width="100">
+            </el-table-column>
+            <el-table-column label="操作" align="center">
+                <template slot-scope="scope">
+                    <el-button type="primary" size="mini" @click="borrowBook(scope.row)">借阅</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!--分页工具条--> <!--NOT OK-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="pagination.currentPage"
+                :page-sizes="[5, 10, 15]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="pagination.total">
+        </el-pagination>
+    </el-main>
+
+</div>
+
+
+<script src="../js/vue.js"></script>
+<script src="../js/index.js"></script>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<link rel="stylesheet" href="../plugins/elementui/index.css">
+<script>
+    var vue = new Vue({
+        el: "#app",
+        data: {
+            // 表格信息
+            books: [],
+            //是否过滤暂无库存
+            checked: false,
+            bookFormData: {},
+            //multipleSelection数组,存放复选框勾中的数据
+            multipleSelection: [],
+            //查询表单数据
+            formInLine: {
+                type: '',
+                content: ''
+            },
+            // 当前页码
+            pagination: {
+                currentPage: 1,
+                pageSize: 5,
+                total: 0
+            }
+        },
+
+        //钩子函数，VUE对象初始化完成后自动执行
+        created() {
+            this.getAllBook();
+            this.InitUserInfo();
+        },
+
+        methods: {
+            //用户信息初始化 /*OK*/
+            InitUserInfo() {
+                axios.get("/infos/getMyInfo").then((res) => {
+                    this.UserInfoData = res.data;
+                });
+            },
+            query() {
+                this.pagination.pageSize = 1;
+                this.queryBooksConditionally();
+            },
+            queryBooksConditionally() {
+                //调用条件查询
+                var type = this.formInLine.type;
+                var content = this.formInLine.content;
+
+                if (type !== '' && content !== '') {
+                    if (this.checked === false) { //不过滤暂无库存
+                        axios.get("/books4user/ByCondition4Book/n/" + this.pagination.currentPage + "/" +
+                            this.pagination.pageSize + "/" + type + "/" + content).then((res) => {
+                            this.pagination.currentPage = res.data.current;
+                            this.pagination.pageSize = res.data.size;
+                            this.pagination.total = res.data.total;
+                            this.books = res.data.records
+                        });
+                    } else { //过滤暂无库存
+                        axios.get("/books4user/ByCondition4Book/y/" + this.pagination.currentPage + "/" +
+                            this.pagination.pageSize + "/" + type + "/" + content).then((res) => {
+                            this.pagination.currentPage = res.data.current;
+                            this.pagination.pageSize = res.data.size;
+                            this.pagination.total = res.data.total;
+                            this.books = res.data.records
+                        });
+                    }
+                } else {
+                    //两个框的内容,只要有一个没填,就默认为查询全部
+                    this.getAllBook();
+                }
+            },
+
+            //获取所有数据 /*OK*/
+            getAllBook() {
+                if (this.checked === false) {
+                    axios.get("/books4user/n/" + this.pagination.currentPage + "/" +
+                        this.pagination.pageSize).then((res) => {
+                        //console.log(res.data);
+                        this.pagination.currentPage = res.data.current;
+                        this.pagination.pageSize = res.data.size;
+                        this.pagination.total = res.data.total;
+                        this.books = res.data.records
+                    });
+                } else {
+                    axios.get("/books4user/y/" + this.pagination.currentPage + "/" +
+                        this.pagination.pageSize).then((res) => {
+                        this.pagination.currentPage = res.data.current;
+                        this.pagination.pageSize = res.data.size;
+                        this.pagination.total = res.data.total;
+                        this.books = res.data.records
+                    });
+                }
+            },
+            <!--分页-->
+            handleSizeChange(val) { //切换当前页显示条数
+                this.pagination.pageSize = val;
+                this.queryBooksConditionally();
+            },
+            handleCurrentChange(val) { //切换页码值
+                this.pagination.currentPage = val;
+                this.queryBooksConditionally();
+            },
+
+
+            //重置 /*OK*/
+            resetForm() {
+                this.bookFormData = {};
+            },
+
+            //处理借阅 /*OK*/
+            borrowBook(row) {
+                this.resetForm();
+
+                //让普通用户确认是否借阅
+                this.$confirm('确认借阅这本书?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    //获取这本书的资料
+                    this.bookFormData = row;
+                    var remain = this.bookFormData.remain;
+
+                    //先查询该用户有没有借阅过此书,如果借过就不能再借阅(以后再实现)
+
+                    if (remain > 0) {
+                        axios.put("/books4user/checkRecord", this.bookFormData).then((res) => {
+                            if (res.data) {
+                                axios.put("/books4user/borrowBook", this.bookFormData).then((res) => {
+                                    this.$message.success("借阅成功");
+                                }).finally(() => {
+                                    this.queryBooksConditionally();//刷新界面
+                                });
+                            } else {
+                                this.$message.error("您已借阅此书且尚未归还");
+                            }
+                        })
+                    } else this.$message.error("此书暂无库存...");
+                }).catch(() => {
+                    this.$message.info("已取消借阅");
+                })
+            },
+
+        }
+    })
+
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+.el-header {
+    background-color: #D3DCE6;
+    color: #333;
+    line-height: 60px;
+    margin-top:-7.7px;
+    margin-left:-7.7px;
+    margin-right:-7.7px;
+    padding:0;
+
+}
+
+.el-aside {
+
+    margin-left:-7.7px;
+    padding:0;
+    color: #333;
+    background-color: #545c64;
+}
+#ha{
+
+    font-size: 24px;
+    font-weight: bold;
+    color: #545c64;
+}
+#app{
+    margin:0 ;
+    border: 0;
+    padding: 0;
+
+}
+#aa{
+    float: right;
+}
+
+
+
+.a1{
+    text-decoration: none;
+    color: #545c64;
+}
+#en{
+    color: #909399;
+}
+#s{
+    font-size: 20px;
+    padding: 15px;
+    color: white;
+
+}
+#ss{
+    margin-left:20px;
+}
+.content{
+    text-decoration: none;
+    color: white;
+}
+.err_msg{
+    color: red;
+    font-size: 12px;
+}
+#checkbox{
+    margin-top:11px;
+}
+.menu_item{
+    font-size: 18px;
+}

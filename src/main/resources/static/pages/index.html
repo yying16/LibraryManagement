@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>图书管理系统</title>
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+    <link rel="stylesheet" href="../plugins/elementui/index.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+</head>
+<body class="hold-transition">
+<div id="app">
+    <input type="checkbox" id="check">
+    <label for="check">
+        <i class="fa fa-500px" id="btn" style="font-size: 42px"><span style="font-size: 48px;font-family: '楷体',serif">图书管理系统</span></i>
+        <i class="fa fa-times" id="cancel"></i>
+    </label>
+    <div id="header">
+        <div id="logout"><a href="http://localhost:8080/logout">退出登录</a></div>
+    </div>
+    <!--侧边栏-->
+    <div id="side" class="sidebar">
+        <div class="top">
+            <div id="topBox">
+                <h2 id="userName">{{onlineUser.username}}</h2>
+            </div>
+
+        </div>
+        <ul id="introduce">
+            <li><i class="fa fa-user-circle-o"></i>{{onlineUser.account}}</li>
+            <li><i class="fa fa fa-address-card-o"></i>{{onlineUser.state?"管理员":"普通用户"}}</li>
+            <li><i class="fa fa fa-phone"></i>{{onlineUser.telephone}}</li>
+            <li><i class="fa fa-envelope"></i>{{onlineUser.email}}</li>
+        </ul>
+        <ul id="center">
+            <div v-if="onlineUser.status==1">
+                <li><a href="javascript:app.changeFrame('AdminRenewBookForm.html')"><i class="fa fa-server"></i>图书信息</a></li>
+                <li><a href="javascript:app.changeFrame('AdminRecordForm.html')"><i class="fa fa-tasks"></i>借阅记录</a></li>
+                <li><a href="javascript:app.changeFrame('AdminAbnormalRecordForm.html')"><i class="fa fa-exclamation-circle"></i>异常记录</a></li>
+            </div>
+            <div v-else>
+                <li><a href="javascript:app.changeFrame('UserBorrowBookForm.html')"><i class="fa fa-server"></i>图书信息</a></li>
+                <li><a href="javascript:app.changeFrame('UserReturnBookForm.html')"><i class="fa fa-book"></i>归还书目</a></li>
+                <li><a href="javascript:app.changeFrame('UserBorrowRecordForm.html')"><i class="fa fa-tasks"></i>借阅记录</a></li>
+            </div>
+
+        </ul>
+        <ul id="bottom">
+            <li><a href="javascript:app.openchangePasswordDialog()"><i class="fa fa fa-sun-o"></i>修改密码</a></li>
+            <li><a href="http://localhost:8080/logout"><i class="fa fa fa-power-off"></i>退出登录</a></li>
+        </ul>
+    </div>
+    <br><br>
+    <!--主界面-->
+    <div class="content">
+        <iframe id="index" :src="frame"></iframe>
+    </div>
+    <!--修改密码对话框-->
+    <el-dialog
+            title="修改密码"
+            :visible.sync="changePasswordDialog"
+            width="30%">
+        <el-form ref="FormEditPsw" :model="PswDataForm" label-width="150px">
+            <el-form-item label="请输入原密码:">
+                <el-input id="oldPsw" type="password" placeholder="请输入原密码" v-model="PswDataForm.oldPsw" show-password></el-input>
+                <br>
+                <span id="password_err" class="err_msg" style="display: none">原密码错误，请再次输入</span>
+            </el-form-item>
+            <el-form-item label="请输入新密码:">
+                <el-input id="newPsw" type="password" placeholder="请输入新密码" v-model="PswDataForm.newPsw" show-password></el-input>
+                <br>
+                <span id="password_err1" class="err_msg" style="display: none">新密码格式错误(至少六位)</span>
+            </el-form-item>
+            <el-form-item label="重新输入新密码:">
+                <el-input id="newPsw1" type="password" placeholder="再次输入新密码" v-model="PswDataForm.newPsw1" show-password></el-input>
+                <br>
+                <span id="password_err3" class="err_msg" style="display: none">密码不一样，请再次输入</span>
+            </el-form-item>
+
+            <el-form-item>
+                <el-button type="primary" @click="changePassword" changePasswordDialog=false>确认</el-button>
+                <el-button @click="changePasswordDialog = false">取消</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+</div>
+</body>
+<script src="../js/vue.js"></script>
+<script src="../plugins/elementui/index.js"></script>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<script>
+    const app = new Vue({
+        el: "#app",
+        data: {
+            onlineUser: null,//当前在线用户
+            frame: "",    //主界面
+            PswDataForm: {//修改密码数据
+                oldPsw: '',
+                newPsw: '',
+                newPsw1: ''
+            },
+            //修改密码对话卡是否显示
+            changePasswordDialog: false,
+        },
+        methods: {
+            //更改主界面（图书信息，归还图书，借阅记录……）
+            changeFrame(frame) {
+                this.frame = frame;
+                document.getElementById('cancel').click();   //关闭侧边栏
+            },
+            //初始化个人信息，将登录的账号信息映射到前端
+            InitUserInfo() {
+                axios.get("/infos/getMyInfo").then((res) => {
+                    this.onlineUser = res.data;
+                    this.username = res.data.username
+                    if (this.onlineUser.status === 1) {
+                        this.frame = 'AdminRenewBookForm.html'
+                    } else {
+                        this.frame = 'UserBorrowBookForm.html'
+                    }
+                    this.$message.success('欢迎回来~'+this.username);
+                });
+            },
+            //打开修改密码对话框
+            openchangePasswordDialog() {
+                this.changePasswordDialog = true;
+            },
+            //修改密码操作
+            changePassword() {
+
+                var oldPsw = this.PswDataForm.oldPsw; //旧密码
+                var newPsw = this.PswDataForm.newPsw; //新密码
+                var newPsw1 = this.PswDataForm.newPsw1; //确认新密码
+
+                if (this.onlineUser.password !== oldPsw) {
+                    this.$message.error("您输入的原密码不正确,请重新输入! (-_-||)");
+                } else if (newPsw !== newPsw1) {
+                    this.$message.error("两次新密码输入内容不一致,请重新输入! (-_-||)");
+                } else {
+                    //弹出警告框,让普通用户进行二次确认
+                    this.$confirm('确认更改您的密码?', 'Tips', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        axios.get("/infos/cp/" + newPsw).then((res) => {
+                            this.changePasswordDialog = false;
+                        }).finally(() => {
+                            //弹出确认框
+                            this.$confirm("更改密码成功,请重新登录~ (^_^)", "Tips", {
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                type: 'success'
+                                /*无论是取消还是确定,点击后都是退出*/
+                            }).then(() => {
+                                window.location.href = 'http://localhost:8080/logout';//退出操作
+                            }).catch(() => {
+                                window.location.href = 'http://localhost:8080/logout';//退出操作
+                            });
+                        });
+                    }).catch(() => {
+                        this.$message.info("已取消操作");
+                        this.changePasswordDialog = false;
+                    })
+                }
+            }
+        },
+        //钩子函数
+        created() {
+            this.InitUserInfo();
+        }
+    });
+</script>
+</html>

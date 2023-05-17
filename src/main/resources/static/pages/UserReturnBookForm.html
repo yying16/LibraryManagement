@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户-归还书目</title>
+
+</head>
+<body>
+<link rel="stylesheet" href="../css/mainPage.css">
+<div id="app">
+    <el-main>
+
+        <!--搜索表单--> <!--OK-->
+        <el-form :inline="true" :model="formInLine" class="demo-form-inline">
+            <el-form-item label="搜索类型">
+                <el-select placeholder="搜索类型" v-model="formInLine.type">
+                    <el-option label="书名" value="bookName"></el-option>
+                    <el-option label="作者" value="author"></el-option>
+                    <el-option label="出版社" value="publisher"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-input placeholder="请输入内容" v-model="formInLine.content"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" v-on:click="pagination.currentPage = 1;queryRecordConditionally()">查询</el-button>
+            </el-form-item>
+        </el-form>
+
+        <!--表格--> <!--OK-->
+        </el-table>
+        </template>
+
+        <el-table :data="books" style="width: 100%">
+            <el-table-column prop="bookName" label="书名" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="isbn" label="ISBN" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="author" label="作者" align="center" width="200">
+            </el-table-column>
+            <el-table-column prop="publisher" label="出版社" align="center">
+            </el-table-column>
+            <el-table-column prop="edition" label="版次" align="center" width="120">
+            </el-table-column>
+            <el-table-column prop="borrowTime" label="借阅时间" align="center">
+            </el-table-column>
+            <el-table-column prop="dateToReturn" label="应还时间" align="center">
+            </el-table-column>
+            <el-table-column label="操作" align="center" >
+                <template slot-scope="scope">
+                    <el-button type="primary" size="mini" @click="returnBook(scope.row)">归还</el-button>
+                    <el-button type="warning" size="mini" @click="deferRecord(scope.row)">续借</el-button>
+                    <el-button type="danger" size="mini" @click="handleLoss(scope.row)">挂失</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="pagination.currentPage"
+                :page-sizes="[5, 10, 15]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="pagination.total">
+        </el-pagination>
+    </el-main>
+</div>
+
+
+<script src="../js/vue.js"></script>
+<script src="../js/index.js"></script>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<link rel="stylesheet" href="../plugins/elementui/index.css">
+<script>
+    new Vue({
+        el: "#app",
+        data: {
+            // 全部待归还书籍信息
+            books: [],
+            //单本书籍信息
+            bookFormData: {},
+
+            //multipleSelection数组,存放复选框勾中的数据
+            multipleSelection: [],
+
+            //表单数据
+            formInLine: {
+                type: '',
+                content: ''
+            },
+
+            // 当前页码
+            pagination: {
+                currentPage: 1,
+                pageSize: 5,
+                total: 0
+            }
+
+        },
+
+        //钩子函数，VUE对象初始化完成后自动执行 /*OK*/
+        created() {
+            this.getAllUnReturnedRecords();
+            this.InitUserInfo();
+        },
+
+        methods: {
+            //普通用户信息初始化 /*OK*/
+            InitUserInfo() {
+                axios.get("/infos/getMyInfo").then((res) => {
+                    this.UserInfoData = res.data;
+                });
+            },
+            //获取所有数据
+            getAllUnReturnedRecords() {
+                axios.get("/books4user/myRecord/unReturned/" + this.pagination.currentPage + "/" +
+                    this.pagination.pageSize).then((res) => {
+                    this.pagination.currentPage = res.data.current;
+                    this.pagination.pageSize = res.data.size;
+                    this.pagination.total = res.data.total;
+                    this.books = res.data.records;
+                });
+            },
+
+            <!--分页-->
+            handleSizeChange(val) { //切换当前页显示条数
+                this.pagination.pageSize = val;
+                this.getAllUnReturnedRecords();
+            },
+            handleCurrentChange(val) { //切换页码值
+                this.pagination.currentPage = val;
+                this.getAllUnReturnedRecords();
+            },
+
+
+            <!--表单查询按钮--> /*OK*/
+            queryRecordConditionally() {
+
+                //调用条件查询
+                var type = this.formInLine.type;
+                var content = this.formInLine.content;
+                axios.get("/books4user/ByConditionForUnReturnRecord/" + this.pagination.currentPage + "/" +
+                    this.pagination.pageSize + "/" + type + "/" + content).then((res) => {
+                    this.pagination.currentPage = res.data.current;
+                    this.pagination.pageSize = res.data.size;
+                    this.pagination.total = res.data.total;
+                    this.books = res.data.records;
+                });
+            },
+
+            //用户归还书籍 /*OK*/
+            returnBook(row) {
+                //弹出警告框,让普通用户进行二次确认
+                this.$confirm('您确认归还这本书?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    //获取这本书的资料
+                    this.bookFormData = row;
+
+                    //发送ajax请求
+                    axios.put("/books4user/returnBook", this.bookFormData).then((res) => {
+                        this.$message.success("归还书籍成功");
+                    }).finally(() => {
+                        this.getAllUnReturnedRecords();//刷新界面
+                    });
+                }).catch(() => {
+                    this.$message.info("已取消操作");
+                })
+            },
+
+            //用户续借书籍
+            deferRecord(row) {
+                //弹出警告框,让普通用户进行二次确认
+                this.$confirm('您确认继续借阅这本书?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    //获取这本书的资料
+                    this.bookFormData = row;
+
+                    axios.put("/books4user/deferRecord", this.bookFormData).then((res) => {
+                        this.$message.success("续借书籍成功");
+                    }).finally(() => {
+                        this.getAllUnReturnedRecords();//刷新界面
+                    });
+                }).catch(() => {
+                    this.$message.info("已取消操作");
+                })
+            },
+            handleLoss(row) {
+                //弹出警告框,让普通用户进行二次确认
+                this.$confirm('您确认继续挂失这本书?', 'Tips', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    //获取这本书的资料
+                    this.bookFormData = row;
+                    axios.put("/books4user/reportRecord", this.bookFormData).then(() => {
+                        this.$message.success("挂失成功");
+                    }).finally(() => {
+                        this.getAllUnReturnedRecords();//刷新界面
+                    });
+                }).catch(() => {
+                    this.$message.info("已取消操作");
+                })
+            },
+
+        }
+    })
+
+</script>
+</body>
+</html>
